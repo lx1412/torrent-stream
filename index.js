@@ -9,17 +9,15 @@ var events = require('events')
 var path = require('path')
 var fs = require('fs')
 var os = require('os')
-var eos = require('end-of-stream')
 var piece = require('torrent-piece')
 var rimraf = require('rimraf')
-var FSChunkStore = require('fs-chunk-store')
 var ImmediateChunkStore = require('immediate-chunk-store')
 var peerDiscovery = require('torrent-discovery')
 var bufferFrom = require('buffer-from')
 
 var blocklist = require('ip-set')
 var exchangeMetadata = require('./lib/exchange-metadata')
-var fileStream = require('./lib/file-stream')
+var FSChunkStore = require('./lib/store')
 
 var MAX_REQUESTS = 5
 var CHOKE_TIMEOUT = 5000
@@ -127,8 +125,7 @@ var torrentStream = function (link, opts, cb) {
   })
 
   var ontorrent = function (torrent) {
-    var storage = opts.storage || FSChunkStore
-    engine.store = ImmediateChunkStore(storage(torrent.pieceLength, {
+    engine.store = ImmediateChunkStore(new FSChunkStore(torrent.pieceLength, {
       files: torrent.files.map(function (file) {
         return {
           path: path.join(opts.path, file.path),
@@ -167,18 +164,6 @@ var torrentStream = function (link, opts, cb) {
 
       file.select = function () {
         engine.select(offsetPiece, endPiece, false)
-      }
-
-      file.createReadStream = function (opts) {
-        var stream = fileStream(engine, file, opts)
-
-        var notify = stream.notify.bind(stream)
-        engine.select(stream.startPiece, stream.endPiece, true, notify)
-        eos(stream, function () {
-          engine.deselect(stream.startPiece, stream.endPiece, true, notify)
-        })
-
-        return stream
       }
 
       return file
