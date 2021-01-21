@@ -98,6 +98,7 @@ var torrentStream = function (link, opts, cb) {
   engine.path = opts.path
   engine.files = []
   engine.selection = []
+  engine.selectedFiles = new Set()
   engine.torrent = null
   engine.bitfield = null
   engine.amInterested = false
@@ -132,7 +133,8 @@ var torrentStream = function (link, opts, cb) {
           length: file.length,
           offset: file.offset
         }
-      })
+      }),
+      selectedFiles: engine.selectedFiles
     }))
     engine.torrent = torrent
     engine.bitfield = bitfield(torrent.pieces.length)
@@ -160,10 +162,12 @@ var torrentStream = function (link, opts, cb) {
 
       file.deselect = function () {
         engine.deselect(offsetPiece, endPiece, false)
+        engine.selectedFiles.delete(path.join(opts.path, file.path))
       }
 
       file.select = function () {
         engine.select(offsetPiece, endPiece, false)
+        engine.selectedFiles.add(path.join(opts.path, file.path))
       }
 
       return file
