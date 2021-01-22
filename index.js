@@ -157,17 +157,18 @@ var torrentStream = function (link, opts, cb) {
 
     engine.files = torrent.files.map(function (file) {
       file = Object.create(file)
+      file.physicalPath = path.join(opts.path, file.path)
       var offsetPiece = (file.offset / torrent.pieceLength) | 0
       var endPiece = ((file.offset + file.length - 1) / torrent.pieceLength) | 0
 
       file.deselect = function () {
         engine.deselect(offsetPiece, endPiece, false)
-        engine.selectedFiles.delete(path.join(opts.path, file.path))
+        engine.selectedFiles.delete(file.physicalPath)
       }
 
       file.select = function () {
         engine.select(offsetPiece, endPiece, false)
-        engine.selectedFiles.add(path.join(opts.path, file.path))
+        engine.selectedFiles.add(file.physicalPath)
       }
 
       return file
